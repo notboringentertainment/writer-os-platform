@@ -10,7 +10,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export const supabaseAdmin = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey)
-  : null as any
+  : {} as ReturnType<typeof createClient>
 
 // Auth helper functions
 export const signInWithGoogle = async () => {
