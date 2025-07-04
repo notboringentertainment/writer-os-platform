@@ -331,7 +331,7 @@ export default function StoryBiblePage() {
 
   const getItemValue = (field: string): string => {
     if (!selectedItem) return ''
-    return (selectedItem as Record<string, unknown>)[field] as string || ''
+    return (selectedItem as Record<string, any>)[field] || ''
   }
 
   const updateItem = (field: string, value: string | number | boolean | string[]) => {
@@ -1235,7 +1235,7 @@ export default function StoryBiblePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input
                       type="text"
-                      value={getItemValue('name')}
+                      value={selectedItem.name}
                       onChange={(e) => updateItem('name', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -1266,7 +1266,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Backstory</label>
                     <textarea
-                      value={getItemValue('backstory')}
+                      value={selectedItem.backstory}
                       onChange={(e) => updateItem('backstory', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1277,7 +1277,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Core Motivation</label>
                     <textarea
-                      value={getItemValue('coreMotivation')}
+                      value={selectedItem.coreMotivation}
                       onChange={(e) => updateItem('coreMotivation', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1288,7 +1288,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Internal Conflict</label>
                     <textarea
-                      value={getItemValue('internalConflict')}
+                      value={selectedItem.internalConflict}
                       onChange={(e) => updateItem('internalConflict', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1299,7 +1299,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">External Conflict</label>
                     <textarea
-                      value={getItemValue('externalConflict')}
+                      value={selectedItem.externalConflict}
                       onChange={(e) => updateItem('externalConflict', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1310,7 +1310,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
                     <textarea
-                      value={getItemValue('strengths')}
+                      value={selectedItem.strengths}
                       onChange={(e) => updateItem('strengths', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1321,7 +1321,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Flaws</label>
                     <textarea
-                      value={getItemValue('flaws')}
+                      value={selectedItem.flaws}
                       onChange={(e) => updateItem('flaws', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1332,7 +1332,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Season 1 Arc</label>
                     <textarea
-                      value={getItemValue('seasonOneArc')}
+                      value={selectedItem.seasonOneArc}
                       onChange={(e) => updateItem('seasonOneArc', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1343,7 +1343,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Long-Term Arc (Optional)</label>
                     <textarea
-                      value={getItemValue('longTermArc')}
+                      value={selectedItem.longTermArc}
                       onChange={(e) => updateItem('longTermArc', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1360,7 +1360,7 @@ export default function StoryBiblePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input
                       type="text"
-                      value={getItemValue('name')}
+                      value={selectedItem.name}
                       onChange={(e) => updateItem('name', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -1369,7 +1369,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                     <select
-                      value={getItemValue('type')}
+                      value={selectedItem.type}
                       onChange={(e) => updateItem('type', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
@@ -1382,7 +1382,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea
-                      value={getItemValue('description')}
+                      value={selectedItem.description}
                       onChange={(e) => updateItem('description', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1392,7 +1392,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Atmosphere</label>
                     <textarea
-                      value={getItemValue('atmosphere')}
+                      value={selectedItem.atmosphere}
                       onChange={(e) => updateItem('atmosphere', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1402,7 +1402,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Significance</label>
                     <textarea
-                      value={getItemValue('significance')}
+                      value={selectedItem.significance}
                       onChange={(e) => updateItem('significance', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1412,7 +1412,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Visual Details</label>
                     <textarea
-                      value={getItemValue('visualDetails')}
+                      value={selectedItem.visualDetails}
                       onChange={(e) => updateItem('visualDetails', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1422,7 +1422,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Soundscape</label>
                     <textarea
-                      value={getItemValue('soundscape')}
+                      value={selectedItem.soundscape}
                       onChange={(e) => updateItem('soundscape', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1438,7 +1438,7 @@ export default function StoryBiblePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Date/Time</label>
                     <input
                       type="text"
-                      value={getItemValue('date')}
+                      value={selectedItem.date}
                       onChange={(e) => updateItem('date', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="e.g., 10 years ago, Summer 1985"
@@ -1448,7 +1448,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Event</label>
                     <textarea
-                      value={getItemValue('event')}
+                      value={selectedItem.event}
                       onChange={(e) => updateItem('event', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1458,7 +1458,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Significance</label>
                     <textarea
-                      value={getItemValue('significance')}
+                      value={selectedItem.significance}
                       onChange={(e) => updateItem('significance', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1468,7 +1468,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Characters Involved</label>
                     <textarea
-                      value={getItemValue('charactersInvolved') || ''}
+                      value={selectedItem.charactersInvolved?.join(', ') || ''}
                       onChange={(e) => updateItem('charactersInvolved', e.target.value.split(',').map(s => s.trim()))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1485,7 +1485,7 @@ export default function StoryBiblePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                     <input
                       type="text"
-                      value={getItemValue('category')}
+                      value={selectedItem.category}
                       onChange={(e) => updateItem('category', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="e.g., Magic System, Technology, Society"
@@ -1495,7 +1495,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Rule</label>
                     <textarea
-                      value={getItemValue('rule')}
+                      value={selectedItem.rule}
                       onChange={(e) => updateItem('rule', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={2}
@@ -1505,7 +1505,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Explanation</label>
                     <textarea
-                      value={getItemValue('explanation')}
+                      value={selectedItem.explanation}
                       onChange={(e) => updateItem('explanation', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1515,7 +1515,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Examples</label>
                     <textarea
-                      value={getItemValue('examples')}
+                      value={selectedItem.examples}
                       onChange={(e) => updateItem('examples', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1531,7 +1531,7 @@ export default function StoryBiblePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Theme</label>
                     <input
                       type="text"
-                      value={getItemValue('theme')}
+                      value={selectedItem.theme}
                       onChange={(e) => updateItem('theme', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -1540,7 +1540,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea
-                      value={getItemValue('description')}
+                      value={selectedItem.description}
                       onChange={(e) => updateItem('description', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1550,7 +1550,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Symbolism</label>
                     <textarea
-                      value={getItemValue('symbolism')}
+                      value={selectedItem.symbolism}
                       onChange={(e) => updateItem('symbolism', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1560,7 +1560,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Manifestations in Story</label>
                     <textarea
-                      value={getItemValue('manifestations')}
+                      value={selectedItem.manifestations}
                       onChange={(e) => updateItem('manifestations', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}
@@ -1570,7 +1570,7 @@ export default function StoryBiblePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Character Connections</label>
                     <textarea
-                      value={getItemValue('characterConnections')}
+                      value={selectedItem.characterConnections}
                       onChange={(e) => updateItem('characterConnections', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       rows={3}

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function TestSupabase() {
@@ -13,7 +14,7 @@ export default function TestSupabase() {
         const supabase = createClientComponentClient()
         
         // Test the connection by checking if we can reach the database
-        const { data, error } = await supabase.from('_test').select('*').limit(1)
+        const { error } = await supabase.from('_test').select('*').limit(1)
         
         if (error && error.code === 'PGRST116') {
           // This error means "table doesn't exist" which is actually good - it means we connected!
@@ -65,12 +66,12 @@ export default function TestSupabase() {
           </div>
           
           <div className="mt-6 pt-4 border-t border-gray-200">
-            <a 
+            <Link 
               href="/"
               className="text-blue-600 hover:text-blue-800 text-sm"
             >
               ← Back to App
-            </a>
+            </Link>
           </div>
         </div>
       </div>

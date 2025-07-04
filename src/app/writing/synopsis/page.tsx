@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, getProject, createProject, updateProject, transformCloudProject } from '@/services/supabaseService'
+import { WritingProfile, Project } from '@/types'
 
 type SynopsisType = 'logline' | 'short' | 'one-page' | 'treatment'
 
@@ -25,8 +26,8 @@ export default function SynopsisPage() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('id')
   
-  const [profile, setProfile] = useState<any>(null)
-  const [currentProject, setCurrentProject] = useState<any | null>(null)
+  const [profile, setProfile] = useState<WritingProfile | null>(null)
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
   const [projectTitle, setProjectTitle] = useState('Untitled Synopsis')
   const [activeType, setActiveType] = useState<SynopsisType>('logline')
   const [isSaving, setIsSaving] = useState(false)
@@ -73,13 +74,13 @@ export default function SynopsisPage() {
             const transformed = transformCloudProject(cloudProject)
             setCurrentProject(transformed)
             setProjectTitle(transformed.title)
-            setSynopsisContent(transformed.content as SynopsisContent)
+            setSynopsisContent(transformed.content as unknown as SynopsisContent)
           }
         } else {
           const newProject = await createProject({
             title: 'Untitled Synopsis',
-            type: 'synopsis' as any,
-            content: synopsisContent,
+            type: 'synopsis' as Project['type'],
+            content: synopsisContent as unknown as Record<string, unknown>,
             description: 'Synopsis and loglines',
             wordCount: 0,
             pageCount: 0
@@ -122,7 +123,7 @@ export default function SynopsisPage() {
     try {
       await updateProject(currentProject.id, {
         title: projectTitle,
-        content: synopsisContent,
+        content: synopsisContent as unknown as Record<string, unknown>,
       })
       
       setSaveStatus('saved')
@@ -421,7 +422,7 @@ export default function SynopsisPage() {
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Logline</h2>
                   <p className="text-gray-600 mb-6">
                     A single sentence that captures the essence of your story. Include the protagonist, 
-                    the central conflict, and what's at stake.
+                    the central conflict, and what&apos;s at stake.
                   </p>
                   
                   <div className="relative">
@@ -460,7 +461,7 @@ export default function SynopsisPage() {
                   <ul className="space-y-1 text-sm text-blue-800">
                     <li>• Keep it under 50 words</li>
                     <li>• Focus on the main character and central conflict</li>
-                    <li>• Include what's at stake</li>
+                    <li>• Include what&apos;s at stake</li>
                     <li>• Make it specific and visual</li>
                     <li>• Avoid character names - use descriptions</li>
                   </ul>
@@ -633,7 +634,7 @@ export default function SynopsisPage() {
                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    <p className="text-gray-500">Click "Generate" for AI-powered suggestions</p>
+                    <p className="text-gray-500">Click &quot;Generate&quot; for AI-powered suggestions</p>
                     <p className="text-sm text-gray-400 mt-2">Based on your creative profile and story context</p>
                   </div>
                 )}

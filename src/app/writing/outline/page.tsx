@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, getProject, createProject, updateProject, transformCloudProject } from '@/services/supabaseService'
+import { WritingProfile, Project } from '@/types'
 
 type BeatType = 'act' | 'sequence' | 'scene' | 'beat'
 
@@ -25,8 +26,8 @@ export default function OutlinePage() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('id')
   
-  const [profile, setProfile] = useState<any>(null)
-  const [currentProject, setCurrentProject] = useState<any | null>(null)
+  const [profile, setProfile] = useState<WritingProfile | null>(null)
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
   const [projectTitle, setProjectTitle] = useState('Untitled Outline')
   const [outlineElements, setOutlineElements] = useState<OutlineElement[]>([
     {
@@ -70,13 +71,13 @@ export default function OutlinePage() {
             const transformed = transformCloudProject(cloudProject)
             setCurrentProject(transformed)
             setProjectTitle(transformed.title)
-            setOutlineElements(transformed.content as OutlineElement[])
+            setOutlineElements(transformed.content as unknown as OutlineElement[])
           }
         } else {
           const newProject = await createProject({
             title: 'Untitled Outline',
-            type: 'outline' as any,
-            content: outlineElements,
+            type: 'outline' as Project['type'],
+            content: outlineElements as unknown as Record<string, unknown>,
             description: 'Story outline',
             wordCount: 0,
             pageCount: 0
@@ -107,7 +108,7 @@ export default function OutlinePage() {
     try {
       await updateProject(currentProject.id, {
         title: projectTitle,
-        content: outlineElements,
+        content: outlineElements as unknown as Record<string, unknown>,
       })
       
       setSaveStatus('saved')
@@ -382,7 +383,7 @@ export default function OutlinePage() {
                 <div className="absolute left-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Three Act Structure</button>
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Save the Cat</button>
-                  <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Hero's Journey</button>
+                  <button className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm">Hero&apos;s Journey</button>
                 </div>
               )}
             </div>
@@ -556,7 +557,7 @@ export default function OutlinePage() {
                       <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
-                      <p className="text-sm">Click "Generate Ideas" for AI suggestions</p>
+                      <p className="text-sm">Click &quot;Generate Ideas&quot; for AI suggestions</p>
                       <p className="text-xs mt-1">Based on your creative profile</p>
                     </div>
                   )}

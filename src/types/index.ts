@@ -14,13 +14,14 @@ export interface WritingProfile {
   initialAnalysis?: string
   finalPartnership?: string
   timestamp: string
+  assessmentType?: 'free' | 'pro'
 }
 
 export interface Project {
   id: string
   title: string
-  type: 'screenplay' | 'character' | 'scene' | 'structure'
-  content: ScriptElement[] | any // Can be ScriptElement[] for screenplays or other content types
+  type: 'screenplay' | 'character' | 'scene' | 'structure' | 'bible' | 'outline' | 'synopsis' | 'characters'
+  content: ScriptElement[] | Record<string, unknown> // Can be ScriptElement[] for screenplays or other content types
   description: string
   createdAt: string
   lastUpdated: string

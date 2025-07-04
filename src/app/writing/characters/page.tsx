@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { getUserProfile, getProject, getProjects, createProject, updateProject, transformCloudProject } from '@/services/supabaseService'
+import { getUserProfile, getProject, createProject, updateProject, transformCloudProject } from '@/services/supabaseService'
+import { Project } from '@/types'
 import { 
-  User, Brain, MessageSquare, Target, Sparkles, Network, FileText, 
-  ChevronRight, Plus, Search, Download, Upload, Users2, 
-  Eye, Heart, Shield, Zap, TrendingUp, MapPin, 
-  BarChart3, GitBranch, Workflow, AlertCircle, Mic,
-  ChevronLeft, Trash2, Swords, Activity
+  Brain, MessageSquare, Sparkles, Network, 
+  Plus, 
+  Eye, Heart, Zap, TrendingUp, MapPin, 
+  ChevronLeft, Trash2, Swords
 } from 'lucide-react'
 
 interface Skill {
@@ -119,8 +119,8 @@ export default function CharacterBuilderPage() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('id')
   
-  const [profile, setProfile] = useState<any>(null)
-  const [currentProject, setCurrentProject] = useState<any | null>(null)
+  // Remove unused profile state
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
   const [projectTitle, setProjectTitle] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -145,7 +145,7 @@ export default function CharacterBuilderPage() {
           router.push('/assessment')
           return
         }
-        setProfile(userProfile.assessment_data)
+        // Profile data loaded but not used in this component
 
         if (projectId) {
           const cloudProject = await getProject(projectId)
@@ -153,13 +153,13 @@ export default function CharacterBuilderPage() {
             const transformed = transformCloudProject(cloudProject)
             setCurrentProject(transformed)
             setProjectTitle(transformed.title)
-            setCharacters(transformed.content?.characters || [])
+            setCharacters((transformed.content as { characters?: Character[] })?.characters || [])
           }
         } else {
           const newCharacter: Character = createNewCharacter()
           const newProject = await createProject({
             title: 'Untitled Characters',
-            type: 'characters' as any,
+            type: 'characters' as Project['type'],
             content: { characters: [newCharacter] },
             description: 'Character development',
             wordCount: 0,
@@ -475,7 +475,7 @@ export default function CharacterBuilderPage() {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
                       ? 'border-purple-500 text-purple-600'
@@ -1055,7 +1055,7 @@ export default function CharacterBuilderPage() {
                               value={skill.category}
                               onChange={(e) => {
                                 const newSkills = [...currentCharacter.skills]
-                                newSkills[idx] = { ...skill, category: e.target.value as any }
+                                newSkills[idx] = { ...skill, category: e.target.value as 'professional' | 'life' | 'specialized' | 'combat' }
                                 updateCharacter({ skills: newSkills })
                               }}
                             >
@@ -1069,7 +1069,7 @@ export default function CharacterBuilderPage() {
                               value={skill.proficiency}
                               onChange={(e) => {
                                 const newSkills = [...currentCharacter.skills]
-                                newSkills[idx] = { ...skill, proficiency: e.target.value as any }
+                                newSkills[idx] = { ...skill, proficiency: e.target.value as 'novice' | 'intermediate' | 'advanced' | 'expert' }
                                 updateCharacter({ skills: newSkills })
                               }}
                             >
@@ -1222,7 +1222,7 @@ export default function CharacterBuilderPage() {
                               value={conflict.type}
                               onChange={(e) => {
                                 const newConflicts = [...currentCharacter.conflicts]
-                                newConflicts[idx] = { ...conflict, type: e.target.value as any }
+                                newConflicts[idx] = { ...conflict, type: e.target.value as 'internal' | 'external' }
                                 updateCharacter({ conflicts: newConflicts })
                               }}
                             >
@@ -1234,7 +1234,7 @@ export default function CharacterBuilderPage() {
                               value={conflict.category}
                               onChange={(e) => {
                                 const newConflicts = [...currentCharacter.conflicts]
-                                newConflicts[idx] = { ...conflict, category: e.target.value as any }
+                                newConflicts[idx] = { ...conflict, category: e.target.value as 'want' | 'need' | 'fear' | 'obstacle' }
                                 updateCharacter({ conflicts: newConflicts })
                               }}
                             >
@@ -1317,7 +1317,7 @@ export default function CharacterBuilderPage() {
                       <div key={layer} className="bg-gray-50 rounded-lg p-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">{layer} Conflicts</label>
                         <div className="space-y-2">
-                          {conflicts.map((conflict, idx) => (
+                          {conflicts.map((conflict: string, idx: number) => (
                             <div key={idx} className="flex items-center gap-2">
                               <input 
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm" 
@@ -1332,7 +1332,7 @@ export default function CharacterBuilderPage() {
                               <button 
                                 onClick={() => {
                                   const newLayers = { ...currentCharacter.conflictLayers }
-                                  newLayers[layer as keyof ConflictLayer] = conflicts.filter((_, i) => i !== idx)
+                                  newLayers[layer as keyof ConflictLayer] = conflicts.filter((_: string, i: number) => i !== idx)
                                   updateCharacter({ conflictLayers: newLayers })
                                 }}
                                 className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"

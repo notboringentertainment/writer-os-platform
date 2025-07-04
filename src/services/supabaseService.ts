@@ -21,7 +21,7 @@ export const getUserProfile = async () => {
 
 export const updateUserProfile = async (profile: {
   assessment_data: WritingProfile | null,
-  ai_partner_config: any
+  ai_partner_config: Record<string, unknown>
 }) => {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -108,7 +108,7 @@ export const createProject = async (project: Omit<Project, 'id' | 'createdAt' | 
         description: project.description,
         wordCount: project.wordCount,
         pageCount: project.pageCount,
-        shadowContent: (project as any).shadowContent ? JSON.stringify((project as any).shadowContent) : null
+        shadowContent: 'shadowContent' in project && project.shadowContent ? JSON.stringify(project.shadowContent) : null
       }
     })
     .select()
@@ -126,7 +126,7 @@ export const updateProject = async (projectId: string, updates: Partial<Project>
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updated_at: new Date().toISOString()
   }
 
@@ -149,7 +149,7 @@ export const updateProject = async (projectId: string, updates: Partial<Project>
     ...(updates.description && { description: updates.description }),
     ...(updates.wordCount !== undefined && { wordCount: updates.wordCount }),
     ...(updates.pageCount !== undefined && { pageCount: updates.pageCount }),
-    ...((updates as any).shadowContent !== undefined && { shadowContent: JSON.stringify((updates as any).shadowContent) })
+    ...('shadowContent' in updates && updates.shadowContent !== undefined && { shadowContent: JSON.stringify(updates.shadowContent) })
   }
 
   const { data, error } = await supabase
@@ -231,14 +231,27 @@ export const migrateLocalStorageToSupabase = async () => {
 }
 
 // Helper to transform cloud data back to local format
-export const transformCloudProject = (cloudProject: any): Project => {
+export const transformCloudProject = (cloudProject: {
+  id: string;
+  title: string;
+  content: string | Record<string, unknown>;
+  metadata?: {
+    type?: string;
+    description?: string;
+    wordCount?: number;
+    pageCount?: number;
+    shadowContent?: string | Record<string, unknown>;
+  };
+  created_at: string;
+  updated_at: string;
+}): Project => {
   console.log('Transforming cloud project:', cloudProject)
   console.log('Cloud project metadata:', cloudProject.metadata)
   
   const transformed = {
     id: cloudProject.id,
     title: cloudProject.title,
-    type: cloudProject.metadata?.type || 'screenplay',
+    type: (cloudProject.metadata?.type || 'screenplay') as Project['type'],
     content: typeof cloudProject.content === 'string' 
       ? JSON.parse(cloudProject.content) 
       : cloudProject.content,
@@ -359,7 +372,7 @@ export const updateConversation = async (
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
 
-  const updateData: any = {}
+  const updateData: Record<string, unknown> = {}
   if (updates.title) updateData.title = updates.title
   if (updates.messages) updateData.messages = updates.messages
 

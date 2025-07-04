@@ -90,7 +90,7 @@ export class ScreenplayParser {
         
         case 'parenthetical':
           if (currentCharacter) {
-            this.parseParenthetical(currentCharacter, element.content, index)
+            this.parseParenthetical(currentCharacter, element.content)
           }
           break
       }
@@ -189,7 +189,7 @@ export class ScreenplayParser {
     this.extractProps(content, index)
   }
 
-  private parseParenthetical(character: string, content: string, index: number) {
+  private parseParenthetical(character: string, content: string) {
     const char = this.knowledgeGraph.characters.get(character)
     if (char) {
       char.actions.push(`(${content})`)

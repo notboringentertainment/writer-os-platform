@@ -6,12 +6,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { signOut } from '@/lib/supabase'
 import { getUserProfile, getProjects, migrateLocalStorageToSupabase } from '@/services/supabaseService'
 import { hasCompletedAssessment } from './utils/storage'
+import { WritingProfile, Project } from '@/types'
 
 export default function HomePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [profile, setProfile] = useState<any>(null)
-  const [projects, setProjects] = useState<any[]>([])
+  const [profile, setProfile] = useState<{ assessment_data?: WritingProfile; ai_partner_config?: Record<string, unknown> } | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
   const [migrating, setMigrating] = useState(false)
   const [hasMigrated, setHasMigrated] = useState(false)
   const [hasLocalAssessment, setHasLocalAssessment] = useState(false)
@@ -256,7 +257,7 @@ export default function HomePage() {
                   <div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors cursor-pointer">
                     <h3 className="font-medium text-gray-900">{project.title}</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      Last updated: {new Date(project.updated_at).toLocaleDateString()}
+                      Last updated: {new Date(project.lastUpdated).toLocaleDateString()}
                     </p>
                   </div>
                 ))}

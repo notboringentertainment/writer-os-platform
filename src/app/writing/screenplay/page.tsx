@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, getProjects, createProject, updateProject as updateCloudProject, transformCloudProject } from '@/services/supabaseService'
 import { exportScript, ExportFormat } from '../../utils/export'
 import { ScreenplayParser, KnowledgeGraph, ContinuityError } from '@/utils/screenplayParser'
+import { WritingProfile, Project } from '@/types'
 
 type ElementType = 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition' | 'shot'
 
@@ -54,8 +55,8 @@ export default function ScreenplayEditor() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('id')
   
-  const [profile, setProfile] = useState<any>(null)
-  const [currentProject, setCurrentProject] = useState<any | null>(null)
+  const [profile, setProfile] = useState<WritingProfile | null>(null)
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
   const [projectTitle, setProjectTitle] = useState('Untitled Screenplay')
   const [scriptElements, setScriptElements] = useState<ScriptElement[]>([
     { id: '1', type: 'scene_heading', content: '' }
@@ -944,7 +945,7 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
                     <svg className="w-6 h-6 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
-                    <p className="text-sm text-gray-600 mb-2">You don't have an outline yet.</p>
+                    <p className="text-sm text-gray-600 mb-2">You don&apos;t have an outline yet.</p>
                     <button
                       onClick={() => router.push('/writing/projects')}
                       className="text-sm text-purple-600 hover:text-purple-700 font-medium"
@@ -977,7 +978,7 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
                     case 'action':
                       return { marginLeft: '0', marginRight: '0', width: '100%' }
                     case 'character':
-                      return { marginLeft: '2.2in', marginRight: '2.2in', width: 'auto', textAlign: 'center' }
+                      return { marginLeft: '2.2in', marginRight: '2.2in', width: 'auto', textAlign: 'center' as const }
                     case 'dialogue':
                       return { marginLeft: '1.5in', marginRight: '1.5in', width: 'auto' }
                     case 'parenthetical':
@@ -996,7 +997,11 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
                 return (
                   <div key={element.id} className="relative mb-0" style={elementStyle}>
                     <textarea
-                      ref={(el) => (elementRefs.current[element.id] = el)}
+                      ref={(el) => {
+                        if (el) {
+                          elementRefs.current[element.id] = el
+                        }
+                      }}
                       value={element.content}
                       onChange={(e) => updateElement(element.id, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, element.id, index)}
@@ -1049,7 +1054,7 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
                     <h3 className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Shadow Writer</h3>
                     <p className="text-xs text-gray-500">Hover over alternatives to use them</p>
                   </div>
-                  {scriptElements.map((element, index) => {
+                  {scriptElements.map((element) => {
                     const shadowElement = shadowWriterElements.find(el => el.id === `shadow-${element.id}`)
                     
                     const getElementStyle = () => {

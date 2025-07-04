@@ -5,19 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, createProject, getProject, updateProject, transformCloudProject } from '@/services/supabaseService'
 import { ScriptElement, calculateWordCount, calculatePageCount } from '@/app/utils/storage'
 import { exportScript, ExportFormat } from '@/app/utils/export'
-
-// Define Project interface locally since we're using cloud storage
-interface Project {
-  id: string
-  title: string
-  type: 'screenplay' | 'character' | 'scene' | 'structure'
-  content: ScriptElement[]
-  description: string
-  createdAt: string
-  lastUpdated: string
-  wordCount: number
-  pageCount: number
-}
+import { WritingProfile, Project } from '@/types'
 
 type ElementType = 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition' | 'shot'
 
@@ -61,13 +49,12 @@ export default function ScreenplayEditor() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('project')
   
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<WritingProfile | null>(null)
   const [currentProject, setCurrentProject] = useState<Project | null>(null)
   const [projectTitle, setProjectTitle] = useState('Untitled Screenplay')
   const [scriptElements, setScriptElements] = useState<ScriptElement[]>([
     { id: '1', type: 'scene_heading', content: '' }
   ])
-  const [currentElementIndex, setCurrentElementIndex] = useState(0)
   const [autoComplete, setAutoComplete] = useState<AutoComplete>({
     show: false,
     options: [],
@@ -113,7 +100,10 @@ export default function ScreenplayEditor() {
           const cloudProject = await getProject(projectId)
           if (cloudProject) {
             const transformed = transformCloudProject(cloudProject)
-            setCurrentProject(transformed)
+            setCurrentProject({
+              ...transformed,
+              content: transformed.content as ScriptElement[]
+            })
             setProjectTitle(transformed.title)
             setScriptElements(transformed.content as ScriptElement[])
             setLastSaved(new Date(transformed.lastUpdated))
@@ -134,7 +124,10 @@ export default function ScreenplayEditor() {
           
           if (newProject) {
             const transformed = transformCloudProject(newProject)
-            setCurrentProject(transformed)
+            setCurrentProject({
+              ...transformed,
+              content: transformed.content as ScriptElement[]
+            })
             setProjectTitle(transformed.title)
             setScriptElements(transformed.content as ScriptElement[])
             setIsLoading(false)
@@ -328,7 +321,7 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
     const newElements = [...scriptElements]
     newElements.splice(index + 1, 0, newElement)
     setScriptElements(newElements)
-    setCurrentElementIndex(index + 1)
+    // Focus on the new element
     
     setTimeout(() => {
       elementRefs.current[newElement.id]?.focus()
@@ -678,11 +671,13 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
               {scriptElements.map((element, index) => (
                 <div key={element.id} className="relative">
                   <textarea
-                    ref={(el) => (elementRefs.current[element.id] = el)}
+                    ref={(el) => {
+                      if (el) elementRefs.current[element.id] = el
+                    }}
                     value={element.content}
                     onChange={(e) => updateElement(element.id, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, element.id, index)}
-                    onFocus={() => setCurrentElementIndex(index)}
+                    onFocus={() => {}}
                     placeholder={ELEMENT_PLACEHOLDERS[element.type]}
                     className={`w-full resize-none border-none outline-none bg-transparent ${ELEMENT_STYLES[element.type]}`}
                     style={{

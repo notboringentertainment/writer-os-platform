@@ -30,7 +30,7 @@ async function callAI(model: string, prompt: string, systemMessage: string) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { message, messages, context, profile, conversationHistory, screenplayContext, mode, elementToMirror, previousElements, knowledgeGraph, item, type } = data;
+    const { message, messages, context, profile, conversationHistory, screenplayContext, mode, elementToMirror, previousElements, item, type } = data;
 
     // Handle general assistant mode
     if (mode === 'general-assistant') {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       const userProfile = context?.userProfile;
       
       // Build conversation history from messages
-      const conversationText = messages?.map((msg: any) => 
+      const conversationText = messages?.map((msg: { role: string; content: string }) => 
         `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
       ).join('\n\n') || '';
 
@@ -151,7 +151,7 @@ SPECIFIC PREFERENCES:
 - Writing Approach: ${profile.refinementResponses?.assistance || 'Not specified'}
 
 CURRENT SCENE CONTEXT:
-${previousElements.slice(-5).map((el: any) => `[${el.type.toUpperCase()}] ${el.content}`).join('\n')}
+${previousElements.slice(-5).map((el: { type: string; content: string }) => `[${el.type.toUpperCase()}] ${el.content}`).join('\n')}
 
 ELEMENT TO REWRITE: ${elementToMirror.type}
 ORIGINAL: "${elementToMirror.content}"
@@ -240,16 +240,16 @@ Generate 3 specific, creative suggestions that would enhance this ${type}. Consi
     
     // Build conversation context for regular chat
     const conversationContext = conversationHistory
-      ? conversationHistory.map((msg: any) => `${msg.role === 'user' ? 'Writer' : 'AI'}: ${msg.content}`).join('\n\n')
+      ? conversationHistory.map((msg: { role: string; content: string }) => `${msg.role === 'user' ? 'Writer' : 'AI'}: ${msg.content}`).join('\n\n')
       : '';
       
     // Add screenplay context if available
     const screenplayInfo = screenplayContext ? `
 CURRENT SCREENPLAY:
-${screenplayContext.elements.map((el: any) => `[${el.type.toUpperCase()}] ${el.content}`).join('\n')}
+${screenplayContext.elements.map((el: { type: string; content: string }) => `[${el.type.toUpperCase()}] ${el.content}`).join('\n')}
 
 CONTINUITY ISSUES DETECTED:
-${screenplayContext.continuityErrors?.map((err: any) => `- ${err.message} (${err.severity})`).join('\n') || 'None detected'}
+${screenplayContext.continuityErrors?.map((err: { message: string; severity: string }) => `- ${err.message} (${err.severity})`).join('\n') || 'None detected'}
 
 STORY KNOWLEDGE:
 - Characters: ${Array.from(screenplayContext.knowledgeGraph?.characters?.keys() || []).join(', ') || 'None yet'}

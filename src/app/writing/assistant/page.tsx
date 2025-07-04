@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, getConversations, getConversation, createConversation, updateConversation, deleteConversation, Conversation } from '@/services/supabaseService'
+import { WritingProfile } from '@/types'
 
 interface Message {
   id: string
@@ -17,7 +18,7 @@ export default function AIAssistant() {
   const searchParams = useSearchParams()
   const conversationId = searchParams.get('id')
   
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<WritingProfile | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(true)

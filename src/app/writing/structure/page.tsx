@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getProject, updateProject, createProject } from '@/services/supabaseService'
 import { storyFrameworks, Framework, Beat } from './frameworks'
 import { movieExamples } from './movieExamples'
+import { Project } from '@/types'
 
 interface StructureData {
   selectedFramework: string
@@ -19,7 +20,7 @@ export default function StoryStructurePage() {
   const searchParams = useSearchParams()
   const projectId = searchParams.get('id')
   
-  const [project, setProject] = useState<any>(null)
+  const [project, setProject] = useState<Project | null>(null)
   const [selectedFramework, setSelectedFramework] = useState<Framework>(storyFrameworks[0])
   const [structureData, setStructureData] = useState<StructureData>({
     selectedFramework: storyFrameworks[0].id,
@@ -29,7 +30,6 @@ export default function StoryStructurePage() {
   })
   const [viewMode, setViewMode] = useState<'visual' | 'list'>('visual')
   const [showComparison, setShowComparison] = useState(false)
-  const [comparisonFramework, setComparisonFramework] = useState<Framework | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showExamples, setShowExamples] = useState(false)
 
@@ -97,15 +97,13 @@ export default function StoryStructurePage() {
     try {
       if (projectId) {
         await updateProject(projectId, {
-          structureData,
-          lastUpdated: new Date().toISOString()
+          content: structureData as unknown as Record<string, unknown>
         })
       } else {
         const newProject = await createProject({
           title: `${selectedFramework.name} Structure`,
           type: 'structure',
-          structureData,
-          content: '',
+          content: structureData as unknown as Record<string, unknown>,
           description: `Story structure using ${selectedFramework.name}`,
           wordCount: 0,
           pageCount: 0
@@ -355,7 +353,12 @@ export default function StoryStructurePage() {
 }
 
 // Visual Beat Sheet Component
-function VisualBeatSheet({ framework, structureData, onBeatChange, onToggleComplete }: any) {
+function VisualBeatSheet({ framework, structureData, onBeatChange, onToggleComplete }: {
+  framework: Framework;
+  structureData: StructureData;
+  onBeatChange: (beatId: string, value: string) => void;
+  onToggleComplete: (beatId: string) => void;
+}) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="relative">
@@ -423,7 +426,12 @@ function VisualBeatSheet({ framework, structureData, onBeatChange, onToggleCompl
 }
 
 // List Beat Sheet Component
-function ListBeatSheet({ framework, structureData, onBeatChange, onToggleComplete }: any) {
+function ListBeatSheet({ framework, structureData, onBeatChange, onToggleComplete }: {
+  framework: Framework;
+  structureData: StructureData;
+  onBeatChange: (beatId: string, value: string) => void;
+  onToggleComplete: (beatId: string) => void;
+}) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="space-y-4">
@@ -482,7 +490,11 @@ function ListBeatSheet({ framework, structureData, onBeatChange, onToggleComplet
 }
 
 // Comparison View Component
-function ComparisonView({ primaryFramework, structureData, onClose }: any) {
+function ComparisonView({ primaryFramework, structureData, onClose }: {
+  primaryFramework: Framework;
+  structureData: StructureData;
+  onClose: () => void;
+}) {
   const [secondaryFramework, setSecondaryFramework] = useState<Framework>(
     storyFrameworks.find(f => f.id !== primaryFramework.id) || storyFrameworks[0]
   )

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, updateUserProfile } from '@/services/supabaseService'
-import { WritingProfile } from '../utils/storage'
+import { WritingProfile } from '@/app/utils/storage'
 
 // Validation function to ensure meaningful responses
 const validateAssessment = (responses: Record<string, string>) => {
@@ -121,6 +121,7 @@ export default function AssessmentPage() {
         initialAnalysis: analysis,
         refinementResponses: refinementResponses,
         finalPartnership: finalPartnership,
+        assessmentType: 'pro',
         createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       }
@@ -419,7 +420,7 @@ export default function AssessmentPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Which director's films taught you how to write visually? What specific sequence made you realize how much story can be told without words?
+                      {"Which director's films taught you how to write visually? What specific sequence made you realize how much story can be told without words?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -462,7 +463,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      What moment of "perfect screenplay execution" do you see as the gold standard?
+                      {"What moment of 'perfect screenplay execution' do you see as the gold standard?"}
                     </label>
                     <textarea 
                       className="w-full h-24 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -481,7 +482,7 @@ export default function AssessmentPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Which character's introduction made you rethink how to put people on the page?
+                      {"Which character's introduction made you rethink how to put people on the page?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -548,7 +549,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How do you convey emotion without dialogue? Describe your approach to "show don't tell."
+                      {"How do you convey emotion without dialogue? Describe your approach to 'show don't tell.'"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -567,7 +568,7 @@ export default function AssessmentPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How do you handle exposition in your scripts? What's your philosophy on information delivery?
+                      {"How do you handle exposition in your scripts? What's your philosophy on information delivery?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -579,7 +580,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Describe your revision process. Are you a "get it right the first time" writer or an "iterative refiner"?
+                      {"Describe your revision process. Are you a 'get it right the first time' writer or an 'iterative refiner'?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -610,7 +611,7 @@ export default function AssessmentPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How do you approach subtext in dialogue? Give an example of how you'd write a breakup scene without using the word "breakup."
+                      {"How do you approach subtext in dialogue? Give an example of how you'd write a breakup scene without using the word 'breakup.'"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -622,7 +623,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Do you write dialogue that sounds natural/conversational or heightened/stylized? What's your voice?
+                      {"Do you write dialogue that sounds natural/conversational or heightened/stylized? What's your voice?"}
                     </label>
                     <textarea 
                       className="w-full h-24 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -634,7 +635,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How do you make each character's voice distinct? What's your process for character-specific dialogue?
+                      {"How do you make each character's voice distinct? What's your process for character-specific dialogue?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -665,7 +666,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How do you track continuity across your scripts? What's your system for maintaining consistency?
+                      {"How do you track continuity across your scripts? What's your system for maintaining consistency?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -708,7 +709,7 @@ export default function AssessmentPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Describe a scene you're proud of writing. What made it work? Walk me through your process.
+                      {"Describe a scene you're proud of writing. What made it work? Walk me through your process."}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -732,7 +733,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      When you're stuck on a scene, what's your process for breaking through?
+                      {"When you're stuck on a scene, what's your process for breaking through?"}
                     </label>
                     <textarea 
                       className="w-full h-24 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -751,7 +752,7 @@ export default function AssessmentPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      How do you prefer to receive feedback on your writing? What's helpful vs. harmful?
+                      {"How do you prefer to receive feedback on your writing? What's helpful vs. harmful?"}
                     </label>
                     <textarea 
                       className="w-full h-28 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -818,7 +819,7 @@ export default function AssessmentPage() {
                     
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      What's your philosophy on scene length? When do you cut and when do you linger?
+                      {"What's your philosophy on scene length? When do you cut and when do you linger?"}
                     </label>
                     <textarea 
                       className="w-full h-24 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"

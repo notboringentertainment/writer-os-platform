@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile } from '@/services/supabaseService'
+import { WritingProfile } from '@/types'
 
 interface Message {
   id: string
@@ -18,7 +19,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [userProfile, setUserProfile] = useState<any>(null)
+  const [userProfile, setUserProfile] = useState<{ assessment_data?: WritingProfile } | null>(null)
   const [showWelcome, setShowWelcome] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
   const [showPulse, setShowPulse] = useState(true)
@@ -83,7 +84,12 @@ export default function AIAssistant() {
 
   // Get current context
   const getCurrentContext = () => {
-    const context: any = {
+    const context: {
+      currentPath: string;
+      currentPage: string;
+      currentSection: string | null;
+      userProfile?: WritingProfile | null;
+    } = {
       currentPath: pathname,
       currentPage: 'unknown',
       currentSection: null
@@ -209,7 +215,7 @@ export default function AIAssistant() {
           <div className="absolute bottom-full right-0 mb-2 animate-fade-in">
             <div className="bg-white rounded-lg shadow-lg p-3 max-w-xs border border-purple-200">
               <p className="text-sm text-gray-700 font-medium">
-                👋 Hi! I'm your AI writing partner
+                👋 Hi! I&apos;m your AI writing partner
               </p>
               <p className="text-xs text-gray-600 mt-1">
                 Click here or press Cmd+K to chat
@@ -298,7 +304,7 @@ export default function AIAssistant() {
                 <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
-                <p className="text-gray-600 font-semibold mb-3 text-lg">Hi! I'm your AI writing partner.</p>
+                <p className="text-gray-600 font-semibold mb-3 text-lg">Hi! I&apos;m your AI writing partner.</p>
                 <p className="text-sm text-gray-500 mb-3">How can I help you today?</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button 

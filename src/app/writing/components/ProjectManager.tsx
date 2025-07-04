@@ -1,9 +1,10 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Project } from '@/types'
 
 interface ProjectManagerProps {
-  projects: any[]
+  projects: Project[]
   onProjectsChange: () => void
   onDeleteProject?: (projectId: string) => Promise<void>
 }
@@ -11,7 +12,7 @@ interface ProjectManagerProps {
 export default function ProjectManager({ projects, onProjectsChange, onDeleteProject }: ProjectManagerProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<any | null>(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -30,7 +31,7 @@ export default function ProjectManager({ projects, onProjectsChange, onDeletePro
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleDelete = async (project: any) => {
+  const handleDelete = async (project: Project) => {
     setSelectedProject(project)
     setShowDeleteModal(true)
   }
@@ -51,7 +52,7 @@ export default function ProjectManager({ projects, onProjectsChange, onDeletePro
     setIsProcessing(false)
   }
 
-  const handleRename = async (project: any) => {
+  const handleRename = async (project: Project) => {
     setSelectedProject(project)
     setNewTitle(project.title)
     setShowRenameModal(true)
@@ -76,14 +77,15 @@ export default function ProjectManager({ projects, onProjectsChange, onDeletePro
     setIsProcessing(false)
   }
 
-  const handleDuplicate = async (project: any) => {
+  const handleDuplicate = async (project: Project) => {
     setIsProcessing(true)
     try {
       const { createProject } = await import('@/services/supabaseService')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, createdAt, lastUpdated, ...projectData } = project
       const newProject = await createProject({
-        ...project,
-        title: `${project.title} (Copy)`,
-        id: undefined // Let Supabase generate new ID
+        ...projectData,
+        title: `${project.title} (Copy)`
       })
       if (newProject) {
         onProjectsChange()
@@ -94,7 +96,7 @@ export default function ProjectManager({ projects, onProjectsChange, onDeletePro
     setIsProcessing(false)
   }
 
-  const openProject = (project: any) => {
+  const openProject = (project: Project) => {
     const routes: Record<string, string> = {
       screenplay: `/writing/screenplay?id=${project.id}`,
       outline: `/writing/outline?id=${project.id}`,
@@ -291,7 +293,7 @@ export default function ProjectManager({ projects, onProjectsChange, onDeletePro
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Project</h3>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to delete "<strong>{selectedProject.title}</strong>"? This action cannot be undone.
+              Are you sure you want to delete &quot;<strong>{selectedProject.title}</strong>&quot;? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button

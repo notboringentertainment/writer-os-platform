@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, getProjects, transformCloudProject } from '@/services/supabaseService'
+import { WritingProfile, Project } from '@/types'
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [profile, setProfile] = useState<any>(null)
-  const [projects, setProjects] = useState<any[]>([])
+  const [profile, setProfile] = useState<{ assessment_data?: WritingProfile; ai_partner_config?: Record<string, unknown> } | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'assessment' | 'settings'>('overview')
 
@@ -176,7 +177,7 @@ export default function ProfilePage() {
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6">
                       <div className="prose prose-sm max-w-none">
                         <p className="text-gray-700 whitespace-pre-wrap">
-                          {profile.ai_partner_config.finalPartnership}
+                          {(profile.ai_partner_config as { finalPartnership?: string })?.finalPartnership || ''}
                         </p>
                       </div>
                     </div>
@@ -185,7 +186,7 @@ export default function ProfilePage() {
                   <div>
                     <h3 className="text-md font-semibold text-gray-900 mb-3">Assessment Responses</h3>
                     <div className="space-y-4">
-                      {Object.entries(profile.assessment_data.originalResponses || {}).map(([key, value]) => (
+                      {Object.entries(profile.assessment_data?.originalResponses || {}).map(([key, value]) => (
                         <div key={key} className="border-l-4 border-purple-200 pl-4">
                           <p className="text-sm text-gray-500 capitalize">
                             {key.replace(/([A-Z])/g, ' $1').trim()}
@@ -218,7 +219,7 @@ export default function ProfilePage() {
                   <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <p className="text-gray-500 mb-4">You haven't completed your writing assessment yet.</p>
+                  <p className="text-gray-500 mb-4">You haven&apos;t completed your writing assessment yet.</p>
                   <button
                     onClick={() => router.push('/assessment')}
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"

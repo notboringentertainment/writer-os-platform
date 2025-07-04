@@ -23,7 +23,6 @@ export default function FreeAssessmentPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [validationError, setValidationError] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
   const [isNewUser, setIsNewUser] = useState(false)
 
   // Check if user needs assessment
@@ -153,7 +152,7 @@ export default function FreeAssessmentPage() {
                 Free Voice Assessment
               </h2>
               <p className="text-lg text-gray-700 leading-relaxed mb-4">
-                Let's explore your creative influences and discover what makes your writing voice unique. This quick assessment helps our AI understand your storytelling preferences.
+                {"Let's explore your creative influences and discover what makes your writing voice unique. This quick assessment helps our AI understand your storytelling preferences."}
               </p>
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <p className="text-sm text-purple-800">
@@ -186,7 +185,7 @@ export default function FreeAssessmentPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      When you read a book or watch something that feels like 'home' - whose voice is that?
+                      {"When you read a book or watch something that feels like 'home' - whose voice is that?"}
                     </label>
                     <textarea
                       value={responses.voiceHome || ''}
@@ -221,7 +220,7 @@ export default function FreeAssessmentPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      What's the book/movie you obsessively recommend to others?
+                      {"What's the book/movie you obsessively recommend to others?"}
                     </label>
                     <textarea
                       value={responses.obsessiveRecommendation || ''}

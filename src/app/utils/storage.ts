@@ -19,8 +19,8 @@ export interface WritingProfile {
   export interface Project {
     id: string;
     title: string;
-    type: 'screenplay' | 'character' | 'scene' | 'structure';
-    content: ScriptElement[] | any; // Will be typed more specifically per project type
+    type: 'screenplay' | 'character' | 'scene' | 'structure' | 'bible' | 'outline' | 'synopsis' | 'characters';
+    content: ScriptElement[] | Record<string, unknown>; // Will be typed more specifically per project type
     shadowContent?: ScriptElement[]; // Shadow writer's alternative versions
     description: string;
     createdAt: string;
@@ -37,11 +37,13 @@ export interface WritingProfile {
     try {
       const existingProfile = getWritingProfile();
       const updatedProfile: WritingProfile = {
+        originalResponses: {},
+        timestamp: new Date().toISOString(),
         ...existingProfile,
         ...profile,
         lastUpdated: new Date().toISOString(),
         createdAt: existingProfile?.createdAt || new Date().toISOString(),
-      };
+      } as WritingProfile;
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProfile));
     } catch (error) {

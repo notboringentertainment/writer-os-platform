@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, getProjects, deleteProject, transformCloudProject } from '@/services/supabaseService'
 import ProjectManager from './components/ProjectManager'
+import { WritingProfile, Project } from '@/types'
 
 export default function WritingDashboard() {
   const { user, loading } = useAuth()
-  const [profile, setProfile] = useState<any>(null)
-  const [allProjects, setAllProjects] = useState<any[]>([])
+  const [profile, setProfile] = useState<WritingProfile | null>(null)
+  const [allProjects, setAllProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showFullPartnership, setShowFullPartnership] = useState(false)
   const router = useRouter()

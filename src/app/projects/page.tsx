@@ -4,13 +4,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { getProjects, deleteProject as deleteCloudProject, updateProject as updateCloudProject, transformCloudProject } from '@/services/supabaseService'
+import { Project } from '@/types'
 
 export default function ProjectsPage() {
   const { user, loading } = useAuth()
-  const [projects, setProjects] = useState<any[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<any | null>(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -49,7 +50,7 @@ export default function ProjectsPage() {
     }
   }
 
-  const handleDelete = async (project: any) => {
+  const handleDelete = async (project: Project) => {
     setSelectedProject(project)
     setShowDeleteModal(true)
   }
@@ -71,7 +72,7 @@ export default function ProjectsPage() {
     setIsProcessing(false)
   }
 
-  const handleRename = async (project: any) => {
+  const handleRename = async (project: Project) => {
     setSelectedProject(project)
     setNewTitle(project.title)
     setShowRenameModal(true)
@@ -95,15 +96,16 @@ export default function ProjectsPage() {
     setIsProcessing(false)
   }
 
-  const handleDuplicate = async (project: any) => {
+  const handleDuplicate = async (project: Project) => {
     setIsProcessing(true)
     try {
       // For now, we'll create a new project with the same content
       const { createProject } = await import('@/services/supabaseService')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, createdAt, lastUpdated, ...projectData } = project
       const newProject = await createProject({
-        ...project,
-        title: `${project.title} (Copy)`,
-        id: undefined // Let Supabase generate new ID
+        ...projectData,
+        title: `${project.title} (Copy)`
       })
       if (newProject) {
         await loadProjects()
@@ -114,7 +116,7 @@ export default function ProjectsPage() {
     setIsProcessing(false)
   }
 
-  const handleNavigateToProject = (project: any) => {
+  const handleNavigateToProject = (project: Project) => {
     console.log('Projects page - navigating to project:', project)
     console.log('Project ID:', project.id)
     console.log('Project type:', project.type)
@@ -197,10 +199,10 @@ export default function ProjectsPage() {
           {filteredProjects.length === 0 ? (
             <div className="text-center py-12">
               {searchQuery ? (
-                <p className="text-gray-500">No projects found matching "{searchQuery}"</p>
+                <p className="text-gray-500">No projects found matching &quot;{searchQuery}&quot;</p>
               ) : (
                 <>
-                  <p className="text-gray-500 mb-4">You don't have any projects yet</p>
+                  <p className="text-gray-500 mb-4">You don&apos;t have any projects yet</p>
                   <button
                     onClick={() => router.push('/writing')}
                     className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -288,7 +290,7 @@ export default function ProjectsPage() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Delete Project</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete "{selectedProject.title}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedProject.title}&quot;? This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
