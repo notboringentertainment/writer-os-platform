@@ -114,7 +114,7 @@ interface Character {
   notes: string
 }
 
-export default function CharacterBuilderPage() {
+function CharacterBuilderPageContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1448,7 +1448,7 @@ export default function CharacterBuilderPage() {
 export default function CharactersPage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <CharactersPageContent />
+      <CharacterBuilderPageContent />
     </Suspense>
   )
 }

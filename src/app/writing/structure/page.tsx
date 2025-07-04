@@ -15,7 +15,7 @@ interface StructureData {
   notes: string
 }
 
-export default function StoryStructurePage() {
+function StoryStructurePageContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -572,7 +572,7 @@ function ComparisonView({ primaryFramework, structureData, onClose }: {
 export default function StructurePage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <StructurePageContent />
+      <StoryStructurePageContent />
     </Suspense>
   )
 }

@@ -99,7 +99,7 @@ interface BibleContent {
   themes: ThemeEntry[]
 }
 
-export default function StoryBiblePage() {
+function StoryBiblePageContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1684,7 +1684,7 @@ export default function StoryBiblePage() {
 export default function BiblePage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <BiblePageContent />
+      <StoryBiblePageContent />
     </Suspense>
   )
 }

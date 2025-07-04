@@ -13,7 +13,7 @@ interface Message {
   timestamp: Date
 }
 
-export default function AIAssistant() {
+function AIAssistantContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -491,7 +491,7 @@ What's on your creative mind?`,
 export default function WritingAssistantPage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-      <WritingAssistantPageContent />
+      <AIAssistantContent />
     </Suspense>
   )
 }
