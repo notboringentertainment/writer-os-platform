@@ -1,0 +1,1208 @@
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { getUserProfile, getProjects, createProject, updateProject as updateCloudProject, transformCloudProject } from '@/services/supabaseService'
+import { exportScript, ExportFormat } from '../../utils/export'
+import { ScreenplayParser, KnowledgeGraph, ContinuityError } from '@/utils/screenplayParser'
+
+type ElementType = 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition' | 'shot'
+
+interface ScriptElement {
+  id: string
+  type: ElementType
+  content: string
+}
+
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+}
+
+interface AutoComplete {
+  show: boolean
+  options: string[]
+  selectedIndex: number
+  elementId: string
+}
+
+const ELEMENT_STYLES = {
+  scene_heading: 'font-mono font-bold text-sm tracking-wide uppercase',
+  action: 'font-mono text-sm',
+  character: 'font-mono font-bold text-sm uppercase text-center',
+  dialogue: 'font-mono text-sm',
+  parenthetical: 'font-mono text-sm italic text-center',
+  transition: 'font-mono font-bold text-sm uppercase text-right',
+  shot: 'font-mono font-bold text-sm uppercase'
+}
+
+const ELEMENT_PLACEHOLDERS = {
+  scene_heading: 'INT./EXT. LOCATION - DAY/NIGHT',
+  action: 'Scene description and action...',
+  character: 'CHARACTER NAME',
+  dialogue: 'Character dialogue...',
+  parenthetical: '(beat)',
+  transition: 'CUT TO:',
+  shot: 'CLOSE-UP:'
+}
+
+export default function ScreenplayEditor() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const projectId = searchParams.get('id')
+  
+  const [profile, setProfile] = useState<any>(null)
+  const [currentProject, setCurrentProject] = useState<any | null>(null)
+  const [projectTitle, setProjectTitle] = useState('Untitled Screenplay')
+  const [scriptElements, setScriptElements] = useState<ScriptElement[]>([
+    { id: '1', type: 'scene_heading', content: '' }
+  ])
+  const [currentElementIndex, setCurrentElementIndex] = useState(0)
+  const [autoComplete, setAutoComplete] = useState<AutoComplete>({
+    show: false,
+    options: [],
+    selectedIndex: 0,
+    elementId: ''
+  })
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [isChatSending, setIsChatSending] = useState(false)
+  const [showChat, setShowChat] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  
+  // New states for enhanced AI features
+  const [knowledgeGraph, setKnowledgeGraph] = useState<KnowledgeGraph | null>(null)
+  const [continuityErrors, setContinuityErrors] = useState<ContinuityError[]>([])
+  const [showShadowWriter, setShowShadowWriter] = useState(false)
+  const [shadowWriterElements, setShadowWriterElements] = useState<ScriptElement[]>([])
+  
+  const elementRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({})
+  const chatEndRef = useRef<HTMLDivElement>(null)
+  const screenplayParser = useRef(new ScreenplayParser())
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [user, loading, router])
+  
+  // Auto-resize all textareas when content changes
+  useEffect(() => {
+    scriptElements.forEach(element => {
+      const textarea = elementRefs.current[element.id]
+      if (textarea && element.content) {
+        textarea.style.height = 'auto'
+        textarea.style.height = textarea.scrollHeight + 'px'
+      }
+    })
+  }, [scriptElements])
+  
+  // Parse screenplay for continuity tracking
+  useEffect(() => {
+    const { knowledgeGraph: kg, errors } = screenplayParser.current.parseScreenplay(scriptElements)
+    setKnowledgeGraph(kg)
+    setContinuityErrors(errors)
+  }, [scriptElements])
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return
+
+      try {
+        // Load user profile from cloud
+        const userProfile = await getUserProfile()
+        
+        if (!userProfile?.assessment_data || !userProfile?.ai_partner_config) {
+          // No assessment completed in cloud, redirect to assessment
+          router.push('/assessment')
+          return
+        }
+
+        setProfile({
+          ...userProfile.assessment_data,
+          finalPartnership: userProfile.ai_partner_config.finalPartnership,
+          initialAnalysis: userProfile.ai_partner_config.initialAnalysis
+        })
+        
+        // Check if we're editing an existing project
+        if (projectId) {
+          console.log('Loading project with ID:', projectId)
+          const cloudProjects = await getProjects()
+          console.log('Raw projects from cloud:', cloudProjects)
+          
+          // Transform all projects first
+          const projects = cloudProjects.map(p => transformCloudProject(p))
+          console.log('Transformed projects:', projects)
+          console.log('Looking for project with ID:', projectId)
+          console.log('Project IDs in list:', projects.map(p => p.id))
+          
+          const project = projects.find(p => String(p.id) === String(projectId))
+          console.log('Found project:', project)
+          
+          if (project && project.type === 'screenplay') {
+            setCurrentProject(project)
+            setProjectTitle(project.title)
+            setScriptElements(project.content as ScriptElement[])
+            setLastSaved(new Date(project.lastUpdated))
+            console.log('Project loaded successfully')
+          } else if (project) {
+            console.log('Project found but type is:', project.type)
+          } else {
+            console.log('Project not found in the list')
+          }
+        } else {
+          console.log('No project ID provided, starting with empty screenplay')
+        }
+        
+        const welcomeMessage: ChatMessage = {
+          id: '1',
+          role: 'assistant',
+          content: `Ready to write your screenplay! I'm here to help with personalized suggestions based on your creative psychology.
+
+I can assist with:
+• Scene development that matches your tension preferences
+• Character dialogue in your preferred style
+• Story structure aligned with your instincts
+• Formatting and industry standards
+
+Start writing, and I'll offer suggestions as you go. What's your screenplay about?`,
+          timestamp: new Date()
+        }
+        
+        setChatMessages([welcomeMessage])
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (user) {
+      loadData()
+    }
+  }, [user, router, projectId])
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
+
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showExportMenu) {
+        const target = event.target as Element
+        if (!target.closest('.export-menu-container')) {
+          setShowExportMenu(false)
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showExportMenu])
+
+
+  const calculateWordCount = (elements: ScriptElement[]): number => {
+    return elements.reduce((count, element) => {
+      return count + element.content.split(/\s+/).filter(word => word.length > 0).length
+    }, 0)
+  }
+
+  const calculatePageCount = (elements: ScriptElement[]): number => {
+    // Rough estimate: 1 page = 50 lines, average line length varies by element type
+    let totalLines = 0
+    elements.forEach(element => {
+      const lines = Math.ceil(element.content.length / 50) // Rough estimate
+      totalLines += lines
+    })
+    return Math.max(1, Math.ceil(totalLines / 50))
+  }
+
+  const saveCurrentProject = async () => {
+    if (isSaving || !user) return
+    
+    console.log('Attempting to save project...')
+    setIsSaving(true)
+    setSaveStatus('saving')
+    
+    try {
+      const wordCount = calculateWordCount(scriptElements)
+      const pageCount = calculatePageCount(scriptElements)
+      
+      console.log('Word count:', wordCount, 'Page count:', pageCount)
+      
+      if (currentProject) {
+        console.log('Updating existing project:', currentProject.id)
+        const success = await updateCloudProject(currentProject.id, {
+          title: projectTitle,
+          content: scriptElements,
+          wordCount: wordCount,
+          pageCount: pageCount,
+        })
+        
+        if (success) {
+          setCurrentProject({
+            ...currentProject,
+            title: projectTitle,
+            content: scriptElements,
+            wordCount,
+            pageCount,
+            lastUpdated: new Date().toISOString()
+          })
+          setLastSaved(new Date())
+          setSaveStatus('saved')
+          console.log('Project updated successfully')
+        }
+      } else {
+        console.log('Creating new project')
+        const newProject = await createProject({
+          title: projectTitle,
+          type: 'screenplay',
+          content: scriptElements,
+          description: `A screenplay with ${scriptElements.length} elements`,
+          wordCount: wordCount,
+          pageCount: pageCount,
+        })
+        
+        if (newProject) {
+          const transformed = transformCloudProject(newProject)
+          setCurrentProject(transformed)
+          setLastSaved(new Date())
+          setSaveStatus('saved')
+          
+          const newUrl = `${window.location.pathname}?id=${newProject.id}`
+          window.history.replaceState({}, '', newUrl)
+          console.log('New project created:', newProject.id)
+        }
+      }
+      
+      setTimeout(() => setSaveStatus('idle'), 2000)
+      
+    } catch (error) {
+      console.error('Failed to save project:', error)
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    }
+    
+    setIsSaving(false)
+  }
+
+  // Auto-save functionality - only when there's actual content
+  useEffect(() => {
+    const hasContent = scriptElements.some(el => el.content.trim() !== '')
+    
+    if (hasContent) {
+      const timeoutId = setTimeout(() => {
+        console.log('Auto-saving...')
+        saveCurrentProject()
+      }, 3000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [scriptElements, projectTitle])
+
+  const formatLastSaved = (date: Date | null): string => {
+    if (!date) return 'Not saved'
+    
+    const now = new Date()
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+    
+    if (diffInMinutes < 1) return 'Just saved'
+    if (diffInMinutes < 60) return `Saved ${diffInMinutes}m ago`
+    
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `Saved ${diffInHours}h ago`
+    
+    return `Saved ${date.toLocaleDateString()}`
+  }
+
+  const handleExport = (format: ExportFormat) => {
+    exportScript(scriptElements, projectTitle, format)
+    setShowExportMenu(false)
+  }
+
+  const getAutoCompleteOptions = (content: string): string[] => {
+    const upperContent = content.toUpperCase()
+    
+    if (upperContent === 'I' || upperContent === 'IN') {
+      return ['INT. ']
+    }
+    if (upperContent === 'E' || upperContent === 'EX') {
+      return ['EXT. ']
+    }
+    
+    if (upperContent.includes(' - ')) {
+      const afterDash = upperContent.split(' - ').pop() || ''
+      if (afterDash === '' || afterDash === 'D') {
+        return ['DAY', 'DAWN', 'DUSK']
+      }
+      if (afterDash === 'N') {
+        return ['NIGHT']
+      }
+      if (afterDash === 'M') {
+        return ['MORNING']
+      }
+      if (afterDash === 'A') {
+        return ['AFTERNOON']
+      }
+      if (afterDash === 'E') {
+        return ['EVENING']
+      }
+    }
+    
+    if (upperContent.match(/^(INT\.|EXT\.)\s+.+[^-\s]$/)) {
+      const lastChar = content.trim().slice(-1).toLowerCase()
+      if (lastChar === 'd') {
+        return ['DAY', 'DAWN', 'DUSK']
+      }
+      if (lastChar === 'n') {
+        return ['NIGHT']
+      }
+      if (lastChar === 'm') {
+        return ['MORNING']
+      }
+      if (lastChar === 'a') {
+        return ['AFTERNOON']
+      }
+      if (lastChar === 'e') {
+        return ['EVENING']
+      }
+    }
+    
+    if (upperContent === 'C') return ['CUT TO:']
+    if (upperContent === 'F') return ['FADE IN:', 'FADE OUT:']
+    if (upperContent === 'D' && !upperContent.includes('INT.') && !upperContent.includes('EXT.')) {
+      return ['DISSOLVE TO:']
+    }
+    
+    return []
+  }
+
+  const addNewElement = (type: ElementType, index: number) => {
+    const newElement: ScriptElement = {
+      id: Date.now().toString(),
+      type,
+      content: ''
+    }
+    
+    const newElements = [...scriptElements]
+    newElements.splice(index + 1, 0, newElement)
+    setScriptElements(newElements)
+    setCurrentElementIndex(index + 1)
+    
+    setTimeout(() => {
+      elementRefs.current[newElement.id]?.focus()
+    }, 0)
+  }
+
+  const updateElement = (id: string, content: string) => {
+    // Auto-capitalize after period for action and dialogue elements
+    const element = scriptElements.find(el => el.id === id)
+    if (element && (element.type === 'action' || element.type === 'dialogue')) {
+      // Check if last typed character creates a situation needing capitalization
+      const lastChar = content[content.length - 1]
+      const secondLastChar = content[content.length - 2]
+      
+      // If we just typed a space after a period, capitalize the next letter
+      if (lastChar && lastChar.match(/[a-z]/) && secondLastChar === ' ' && content.length >= 3) {
+        const thirdLastChar = content[content.length - 3]
+        if (thirdLastChar === '.' || thirdLastChar === '!' || thirdLastChar === '?') {
+          content = content.slice(0, -1) + lastChar.toUpperCase()
+        }
+      }
+      
+      // Capitalize first letter if it's the beginning of the element
+      if (content.length === 1 && content.match(/[a-z]/)) {
+        content = content.toUpperCase()
+      }
+    }
+    
+    setScriptElements(prev => 
+      prev.map(el => el.id === id ? { ...el, content } : el)
+    )
+    
+    // Auto-resize textarea
+    setTimeout(() => {
+      const textarea = elementRefs.current[id]
+      if (textarea) {
+        textarea.style.height = 'auto'
+        textarea.style.height = textarea.scrollHeight + 'px'
+      }
+    }, 0)
+    
+    const options = getAutoCompleteOptions(content)
+    if (options.length > 0) {
+      setAutoComplete({
+        show: true,
+        options,
+        selectedIndex: 0,
+        elementId: id
+      })
+    } else {
+      setAutoComplete(prev => ({ ...prev, show: false }))
+    }
+  }
+
+  const applyAutoComplete = (option: string) => {
+    const element = scriptElements.find(el => el.id === autoComplete.elementId)
+    if (!element) return
+    
+    const content = element.content
+    let newContent = ''
+    
+    // For scene headings, INT. and EXT. should replace the typed content
+    if (element.type === 'scene_heading') {
+      if (option === 'INT. ' && (content === 'I' || content === 'IN' || content.toUpperCase().startsWith('I'))) {
+        newContent = 'INT. '
+      } else if (option === 'EXT. ' && (content === 'E' || content === 'EX' || content.toUpperCase().startsWith('E'))) {
+        newContent = 'EXT. '
+      } else {
+        newContent = content + option
+      }
+    } else if (option === 'INT. ' && (content === 'I' || content === 'IN')) {
+      newContent = 'INT. '
+    } else if (option === 'EXT. ' && (content === 'E' || content === 'EX')) {
+      newContent = 'EXT. '
+    } else if (['DAY', 'NIGHT', 'MORNING', 'AFTERNOON', 'EVENING', 'DAWN', 'DUSK'].includes(option)) {
+      if (content.includes(' - ')) {
+        const beforeDash = content.substring(0, content.lastIndexOf(' - ') + 3)
+        // Remove any trailing character that triggered the autocomplete
+        const afterDash = content.substring(content.lastIndexOf(' - ') + 3).trim()
+        if (afterDash.length === 1 && option.startsWith(afterDash.toUpperCase())) {
+          // If there's a single character after dash that matches the start of the option, replace it
+          newContent = beforeDash + option
+        } else {
+          newContent = beforeDash + option
+        }
+      } else {
+        // Check if the last character should be replaced
+        const lastChar = content.trim().slice(-1)
+        if (lastChar && option.startsWith(lastChar.toUpperCase()) && !content.includes(' - ')) {
+          // Replace the last character with the full option
+          newContent = content.slice(0, -1) + ' - ' + option
+        } else {
+          newContent = content + ' - ' + option
+        }
+      }
+    } else {
+      newContent = content + option
+    }
+    
+    updateElement(autoComplete.elementId, newContent)
+    setAutoComplete(prev => ({ ...prev, show: false }))
+    
+    setTimeout(() => {
+      const textarea = elementRefs.current[autoComplete.elementId]
+      if (textarea) {
+        textarea.focus()
+        textarea.setSelectionRange(newContent.length, newContent.length)
+      }
+    }, 0)
+  }
+
+  const getNextElementType = (currentType: ElementType): ElementType => {
+    switch (currentType) {
+      case 'scene_heading': return 'action'
+      case 'action': return 'action'
+      case 'character': return 'dialogue'
+      case 'dialogue': return 'action'
+      case 'parenthetical': return 'dialogue'
+      case 'transition': return 'scene_heading'
+      case 'shot': return 'action'
+      default: return 'action'
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent, elementId: string, index: number) => {
+    const element = scriptElements[index]
+    
+    if (autoComplete.show && autoComplete.elementId === elementId) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setAutoComplete(prev => ({
+          ...prev,
+          selectedIndex: Math.min(prev.selectedIndex + 1, prev.options.length - 1)
+        }))
+        return
+      }
+      
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setAutoComplete(prev => ({
+          ...prev,
+          selectedIndex: Math.max(prev.selectedIndex - 1, 0)
+        }))
+        return
+      }
+      
+      if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault()
+        applyAutoComplete(autoComplete.options[autoComplete.selectedIndex])
+        return
+      }
+      
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setAutoComplete(prev => ({ ...prev, show: false }))
+        return
+      }
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      
+      // Create new element first
+      const nextType = getNextElementType(element.type)
+      addNewElement(nextType, index)
+      
+      // Then trigger shadow generation for the completed element if shadow writer is on and there's content
+      if (showShadowWriter && element.content) {
+        // Use setTimeout to ensure it doesn't interfere with the UI update
+        setTimeout(() => {
+          generateShadowWriterElement(index)
+        }, 10)
+      }
+    }
+    
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const typeOrder: ElementType[] = ['scene_heading', 'action', 'character', 'dialogue', 'parenthetical', 'transition', 'shot']
+      const currentIndex = typeOrder.indexOf(element.type)
+      const nextType = typeOrder[(currentIndex + 1) % typeOrder.length]
+      
+      setScriptElements(prev => 
+        prev.map(el => el.id === elementId ? { ...el, type: nextType } : el)
+      )
+    }
+    
+    if (e.key === 'Backspace' && element.content === '' && scriptElements.length > 1) {
+      e.preventDefault()
+      const newElements = scriptElements.filter(el => el.id !== elementId)
+      setScriptElements(newElements)
+      
+      if (index > 0) {
+        const prevElement = newElements[index - 1]
+        setTimeout(() => {
+          elementRefs.current[prevElement.id]?.focus()
+        }, 0)
+      }
+    }
+  }
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || isChatSending) return
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: chatInput,
+      timestamp: new Date()
+    }
+
+    setChatMessages(prev => [...prev, userMessage])
+    setChatInput('')
+    setIsChatSending(true)
+
+    try {
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: chatInput,
+          profile: profile,
+          conversationHistory: chatMessages.slice(-6),
+          screenplayContext: {
+            elements: scriptElements,
+            knowledgeGraph: knowledgeGraph,
+            continuityErrors: continuityErrors,
+            currentElementIndex: currentElementIndex
+          }
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: result.response,
+          timestamp: new Date()
+        }
+        
+        setChatMessages(prev => [...prev, assistantMessage])
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    }
+
+    setIsChatSending(false)
+  }
+  
+  const generateShadowWriterElement = async (elementIndex: number) => {
+    if (elementIndex >= scriptElements.length) return
+    
+    const elementToMirror = scriptElements[elementIndex]
+    
+    // Check if profile exists
+    if (!profile?.finalPartnership || !profile?.originalResponses) {
+      console.error('Cannot generate shadow content without creative profile')
+      return
+    }
+    
+    // For character names and parentheticals, just copy them exactly (these should never change)
+    if (elementToMirror.type === 'character' || 
+        elementToMirror.type === 'parenthetical') {
+      setShadowWriterElements(prev => {
+        const shadowId = `shadow-${elementToMirror.id}`
+        const filtered = prev.filter(el => el.id !== shadowId)
+        return [...filtered, {
+          id: shadowId,
+          type: elementToMirror.type,
+          content: elementToMirror.content
+        }]
+      })
+      return
+    }
+    
+    // For ALL other types (action, dialogue, scene_heading, transition, shot), generate alternatives
+    try {
+      const response = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: 'shadow_writer',
+          elementToMirror: elementToMirror,
+          previousElements: scriptElements.slice(0, elementIndex),
+          profile: profile,
+          knowledgeGraph: knowledgeGraph
+        }),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success && result.shadowElement !== undefined) {
+        setShadowWriterElements(prev => {
+          const shadowId = `shadow-${elementToMirror.id}`
+          const filtered = prev.filter(el => el.id !== shadowId)
+          return [...filtered, {
+            id: shadowId,
+            type: elementToMirror.type,
+            content: result.shadowElement
+          }]
+        })
+      }
+    } catch (error) {
+      console.error('Error generating shadow element:', error)
+    }
+  }
+  
+
+  if (loading || isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading screenplay editor...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+        {/* Top Navigation Bar */}
+        <div className="px-6 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => router.push('/writing')}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              ← Back
+            </button>
+            
+            {/* AI Assistant Toggle */}
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                showChat ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              <span>AI Assistant</span>
+            </button>
+            
+            {/* Shadow Writer Toggle */}
+            <button
+              onClick={() => {
+                if (!profile?.finalPartnership && !showShadowWriter) {
+                  alert('Creative profile required. Please complete your assessment first.')
+                  return
+                }
+                setShowShadowWriter(!showShadowWriter)
+              }}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                showShadowWriter ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:bg-white/50'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span>Shadow Writer</span>
+            </button>
+            
+            {/* Export Dropdown */}
+            <div className="relative export-menu-container">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:bg-white/50 transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Export</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showExportMenu && (
+                <div className="absolute left-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="py-2">
+                      <button
+                        onClick={() => handleExport('pdf')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-3"
+                      >
+                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <div>
+                          <div className="font-medium text-gray-900">PDF</div>
+                          <div className="text-xs text-gray-500">Professional format</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleExport('fdx')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-3"
+                      >
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div>
+                          <div className="font-medium text-gray-900">Final Draft (.fdx)</div>
+                          <div className="text-xs text-gray-500">Industry standard</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleExport('fountain')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-3"
+                      >
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        <div>
+                          <div className="font-medium text-gray-900">Fountain</div>
+                          <div className="text-xs text-gray-500">Open format</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleExport('txt')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-3"
+                      >
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div>
+                          <div className="font-medium text-gray-900">Plain Text</div>
+                          <div className="text-xs text-gray-500">Simple backup</div>
+                        </div>
+                      </button>
+                    </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Right side - Title and Save */}
+          <div className="flex items-center space-x-4">
+            <div className="text-right mr-4">
+              <input
+                type="text"
+                value={projectTitle}
+                onChange={(e) => setProjectTitle(e.target.value)}
+                className="text-lg font-semibold text-gray-900 bg-transparent border-none outline-none text-right"
+                placeholder="Untitled Screenplay"
+              />
+              <p className="text-xs text-gray-500">
+                {calculateWordCount(scriptElements)} words • {formatLastSaved(lastSaved)}
+              </p>
+            </div>
+            
+            <button
+              onClick={saveCurrentProject}
+              disabled={isSaving || !currentProject}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
+                saveStatus === 'saved' 
+                  ? 'bg-green-500 text-white' 
+                  : saveStatus === 'error'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gray-900 text-white hover:bg-gray-800'
+              } disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                  Saving
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Saved
+                </>
+              ) : (
+                'Save'
+              )}
+            </button>
+          </div>
+        </div>
+        
+        {/* Format Toolbar - moved to header */}
+        <div className="px-6 py-2 border-t border-gray-200/50 bg-white/50">
+          <div className="flex items-center space-x-2">
+            {(['scene_heading', 'action', 'character', 'dialogue', 'parenthetical', 'transition', 'shot'] as ElementType[]).map(type => (
+              <button
+                key={type}
+                onClick={() => {
+                  if (currentElementIndex >= 0 && currentElementIndex < scriptElements.length) {
+                    setScriptElements(prev =>
+                      prev.map((el, idx) => 
+                        idx === currentElementIndex ? { ...el, type } : el
+                      )
+                    )
+                    // Refocus the current element
+                    setTimeout(() => {
+                      const elements = document.querySelectorAll('textarea')
+                      if (elements[currentElementIndex]) {
+                        (elements[currentElementIndex] as HTMLTextAreaElement).focus()
+                      }
+                    }, 0)
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded transition-colors ${
+                  currentElementIndex >= 0 && scriptElements[currentElementIndex]?.type === type
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+              >
+                {type.replace('_', ' ').charAt(0).toUpperCase() + type.replace('_', ' ').slice(1)}
+              </button>
+            ))}
+            <div className="ml-auto text-xs text-gray-500">
+              Press TAB to cycle formats
+            </div>
+          </div>
+        </div>
+      </header>
+
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex">
+        {/* Editor Section */}
+        <div className={`${showChat ? 'flex-1' : 'w-full'} bg-gray-50 overflow-y-auto`}>
+          <div className={`${showShadowWriter ? 'flex gap-4 max-w-[17in]' : 'max-w-[8.5in]'} mx-auto`}>
+            {/* Main Editor */}
+            <div className={`${showShadowWriter ? 'flex-1' : ''} bg-white shadow-lg`} style={{ minHeight: '11in' }}>
+              <div className="p-[1in] pt-[1in]">
+                {/* Link to Project prompt if no content */}
+                {scriptElements.length === 1 && !scriptElements[0].content && (
+                  <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                    <svg className="w-6 h-6 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <p className="text-sm text-gray-600 mb-2">You don't have an outline yet.</p>
+                    <button
+                      onClick={() => router.push('/writing/projects')}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      Link to Project →
+                    </button>
+                  </div>
+                )}
+                
+                {/* Continuity Errors Alert */}
+                {continuityErrors.length > 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-semibold text-yellow-800 mb-2">Continuity Alerts:</h4>
+                    <ul className="space-y-1">
+                      {continuityErrors.map((error, idx) => (
+                        <li key={idx} className="text-sm text-yellow-700">
+                          • {error.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {scriptElements.map((element, index) => {
+                // Calculate proper margins for each element type
+                const getElementStyle = () => {
+                  switch (element.type) {
+                    case 'scene_heading':
+                      return { marginLeft: '0', marginRight: '0', width: '100%' }
+                    case 'action':
+                      return { marginLeft: '0', marginRight: '0', width: '100%' }
+                    case 'character':
+                      return { marginLeft: '2.2in', marginRight: '2.2in', width: 'auto', textAlign: 'center' }
+                    case 'dialogue':
+                      return { marginLeft: '1.5in', marginRight: '1.5in', width: 'auto' }
+                    case 'parenthetical':
+                      return { marginLeft: '1.9in', marginRight: '2.1in', width: 'auto' }
+                    case 'transition':
+                      return { marginLeft: 'auto', marginRight: '0', width: 'auto' }
+                    case 'shot':
+                      return { marginLeft: '0', marginRight: '0', width: '100%' }
+                    default:
+                      return { marginLeft: '0', marginRight: '0', width: '100%' }
+                  }
+                }
+                
+                const elementStyle = getElementStyle()
+                
+                return (
+                  <div key={element.id} className="relative mb-0" style={elementStyle}>
+                    <textarea
+                      ref={(el) => (elementRefs.current[element.id] = el)}
+                      value={element.content}
+                      onChange={(e) => updateElement(element.id, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, element.id, index)}
+                      onFocus={() => setCurrentElementIndex(index)}
+                      placeholder={ELEMENT_PLACEHOLDERS[element.type]}
+                      className={`w-full resize-none border-none outline-none bg-transparent ${ELEMENT_STYLES[element.type]}`}
+                      data-element-type={element.type}
+                      style={{
+                        minHeight: '24px',
+                        lineHeight: '24px',
+                        overflow: 'hidden',
+                        textAlign: element.type === 'character' || element.type === 'parenthetical' ? 'center' : 
+                                  element.type === 'transition' ? 'right' : 'left'
+                      }}
+                      rows={1}
+                      spellCheck={true}
+                    />
+                  
+                  {autoComplete.show && autoComplete.elementId === element.id && (
+                    <div className="absolute top-6 left-0 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-w-xs">
+                      {autoComplete.options.map((option, optionIndex) => (
+                        <div
+                          key={option}
+                          className={`px-3 py-2 cursor-pointer text-sm font-mono ${
+                            optionIndex === autoComplete.selectedIndex
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'hover:bg-gray-100'
+                          }`}
+                          onMouseDown={(e) => {
+                            e.preventDefault() // Prevent blur
+                            applyAutoComplete(option)
+                          }}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  </div>
+                )
+              })}
+              </div>
+            </div>
+            
+            {/* Shadow Writer Panel */}
+            {showShadowWriter && (
+              <div className="flex-1 bg-white shadow-lg" style={{ minHeight: '11in' }}>
+                <div className="p-[1in] pt-[1in]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Shadow Writer</h3>
+                    <p className="text-xs text-gray-500">Hover over alternatives to use them</p>
+                  </div>
+                  {scriptElements.map((element, index) => {
+                    const shadowElement = shadowWriterElements.find(el => el.id === `shadow-${element.id}`)
+                    
+                    const getElementStyle = () => {
+                      switch (element.type) {
+                        case 'scene_heading':
+                          return { marginLeft: '0', marginRight: '0', width: '100%' }
+                        case 'action':
+                          return { marginLeft: '0', marginRight: '0', width: '100%' }
+                        case 'character':
+                          return { marginLeft: '2.2in', marginRight: '2.2in', width: 'auto', textAlign: 'center' as const }
+                        case 'dialogue':
+                          return { marginLeft: '1.5in', marginRight: '1.5in', width: 'auto' }
+                        case 'parenthetical':
+                          return { marginLeft: '1.9in', marginRight: '2.1in', width: 'auto' }
+                        case 'transition':
+                          return { marginLeft: 'auto', marginRight: '0', width: 'auto' }
+                        case 'shot':
+                          return { marginLeft: '0', marginRight: '0', width: '100%' }
+                        default:
+                          return { marginLeft: '0', marginRight: '0', width: '100%' }
+                      }
+                    }
+                    
+                    const elementStyle = getElementStyle()
+                    const displayContent = shadowElement ? shadowElement.content : element.content
+                    
+                    return (
+                      <div 
+                        key={element.id} 
+                        className={`relative mb-0 group ${!shadowElement ? 'opacity-30' : 'hover:bg-purple-50 transition-colors duration-200'}`}
+                        style={elementStyle}
+                      >
+                        <div 
+                          className={`${ELEMENT_STYLES[element.type]} relative`}
+                          style={{
+                            textAlign: element.type === 'character' || element.type === 'parenthetical' ? 'center' : 
+                                      element.type === 'transition' ? 'right' : 'left'
+                          }}
+                        >
+                          {displayContent}
+                          
+                          {/* Show "Use this version" button on hover if shadow content exists and differs from original */}
+                          {shadowElement && shadowElement.content !== element.content && (
+                            <button
+                              onClick={() => {
+                                // Apply shadow writer's version to the main script
+                                setScriptElements(prev =>
+                                  prev.map(el => 
+                                    el.id === element.id 
+                                      ? { ...el, content: shadowElement.content }
+                                      : el
+                                  )
+                                )
+                              }}
+                              className="absolute -left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 
+                                         bg-purple-600 text-white text-xs px-2 py-1 rounded-md 
+                                         transition-opacity duration-200 hover:bg-purple-700 shadow-lg"
+                              style={{ zIndex: 10 }}
+                            >
+                              Use this version →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* AI Chat Panel */}
+        {showChat && (
+          <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+          <div className="bg-white border-b border-gray-200 p-4">
+            <h3 className="font-semibold text-gray-900">AI Writing Partner</h3>
+            <p className="text-sm text-gray-600">Context-aware screenplay assistance</p>
+            
+            {/* Screenplay Context Info */}
+            {knowledgeGraph && (
+              <div className="mt-3 text-xs text-gray-500 space-y-1">
+                <div>Characters: {knowledgeGraph.characters.size || 0}</div>
+                <div>Locations: {knowledgeGraph.locations.size || 0}</div>
+                <div>Current Scene: {knowledgeGraph.currentScene?.name || 'None'}</div>
+                {continuityErrors.length > 0 && (
+                  <div className="text-yellow-600">⚠️ {continuityErrors.length} continuity alerts</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {chatMessages.map((message) => (
+              <div
+                key={message.id}
+                className={`${message.role === 'user' ? 'text-right' : 'text-left'}`}
+              >
+                <div
+                  className={`inline-block max-w-xs p-3 rounded-lg text-sm ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-200'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
+              </div>
+            ))}
+            
+            {isChatSending && (
+              <div className="text-left">
+                <div className="inline-block bg-white border border-gray-200 p-3 rounded-lg">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={chatEndRef} />
+          </div>
+
+          <div className="bg-white border-t border-gray-200 p-4">
+            <div className="flex space-x-2">
+              <textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendChatMessage()
+                  }
+                }}
+                placeholder="Ask about your screenplay..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg resize-none text-sm"
+                rows={2}
+                disabled={isChatSending}
+              />
+              <button
+                onClick={sendChatMessage}
+                disabled={!chatInput.trim() || isChatSending}
+                className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
