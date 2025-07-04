@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -1677,5 +1678,13 @@ export default function StoryBiblePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function BiblePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <BiblePageContent />
+    </Suspense>
   )
 }

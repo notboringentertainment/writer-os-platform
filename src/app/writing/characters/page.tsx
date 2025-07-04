@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -1441,5 +1442,13 @@ export default function CharacterBuilderPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CharactersPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <CharactersPageContent />
+    </Suspense>
   )
 }

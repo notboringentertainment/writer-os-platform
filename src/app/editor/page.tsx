@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserProfile, createProject, getProject, updateProject, transformCloudProject } from '@/services/supabaseService'
@@ -43,7 +43,7 @@ const ELEMENT_PLACEHOLDERS = {
   shot: 'CLOSE-UP:'
 }
 
-export default function ScreenplayEditor() {
+function ScreenplayEditorContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -785,5 +785,13 @@ Start writing, and I'll offer suggestions as you go. What's your screenplay abou
         </div>
       )}
     </div>
+  )
+}
+
+export default function ScreenplayEditor() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ScreenplayEditorContent />
+    </Suspense>
   )
 }

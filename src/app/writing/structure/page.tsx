@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -565,5 +566,13 @@ function ComparisonView({ primaryFramework, structureData, onClose }: {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function StructurePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <StructurePageContent />
+    </Suspense>
   )
 }

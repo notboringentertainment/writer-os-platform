@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -15,7 +16,7 @@ const validateAssessment = (responses: Record<string, string>) => {
   return filledFields.length >= 10;
 };
 
-export default function AssessmentPage() {
+function AssessmentPageContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -949,5 +950,13 @@ export default function AssessmentPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function AssessmentPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <AssessmentPageContent />
+    </Suspense>
   )
 }

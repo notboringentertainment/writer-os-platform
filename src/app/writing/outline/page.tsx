@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -20,7 +21,7 @@ interface OutlineElement {
   isExpanded?: boolean
 }
 
-export default function OutlinePage() {
+function OutlinePageContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -568,5 +569,13 @@ export default function OutlinePage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function OutlinePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <OutlinePageContent />
+    </Suspense>
   )
 }
