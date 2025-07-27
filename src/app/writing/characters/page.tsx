@@ -250,13 +250,17 @@ function CharacterBuilderPageContent() {
     setSaveStatus('saving')
     
     try {
-      await updateProject(currentProject.id, {
+      const success = await updateProject(currentProject.id, {
         title: projectTitle,
         content: { characters },
       })
-      
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 2000)
+
+      if (success) {
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 2000)
+      } else {
+        throw new Error('Update failed')
+      }
     } catch (error) {
       console.error('Failed to save:', error)
       setSaveStatus('error')

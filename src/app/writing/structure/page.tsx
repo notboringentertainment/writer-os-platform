@@ -97,9 +97,10 @@ function StoryStructurePageContent() {
     setIsSaving(true)
     try {
       if (projectId) {
-        await updateProject(projectId, {
+        const success = await updateProject(projectId, {
           content: structureData as unknown as Record<string, unknown>
         })
+        if (!success) throw new Error('Update failed')
       } else {
         const newProject = await createProject({
           title: `${selectedFramework.name} Structure`,

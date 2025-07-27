@@ -122,9 +122,9 @@ export const createProject = async (project: Omit<Project, 'id' | 'createdAt' | 
   return data
 }
 
-export const updateProject = async (projectId: string, updates: Partial<Project>) => {
+export const updateProject = async (projectId: string, updates: Partial<Project>): Promise<boolean> => {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  if (!user) return false
 
   const updateData: Record<string, unknown> = {
     updated_at: new Date().toISOString()
@@ -134,13 +134,18 @@ export const updateProject = async (projectId: string, updates: Partial<Project>
   if (updates.content) updateData.content = JSON.stringify(updates.content)
   
   // Always get existing metadata first to preserve fields we're not updating
-  const { data: existingProject } = await supabase
+  const { data: existingProject, error: fetchError } = await supabase
     .from('projects')
     .select('metadata')
     .eq('id', projectId)
     .eq('user_id', user.id)
     .single()
-  
+
+  if (fetchError) {
+    console.error('Error fetching project metadata:', fetchError)
+    return false
+  }
+
   const existingMetadata = existingProject?.metadata || {}
   
   updateData.metadata = {
@@ -152,20 +157,17 @@ export const updateProject = async (projectId: string, updates: Partial<Project>
     ...('shadowContent' in updates && updates.shadowContent !== undefined && { shadowContent: JSON.stringify(updates.shadowContent) })
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('projects')
     .update(updateData)
     .eq('id', projectId)
     .eq('user_id', user.id)
-    .select()
-    .single()
 
   if (error) {
     console.error('Error updating project:', error)
-    return null
+    return false
   }
-  
-  return data
+  return true
 }
 
 export const deleteProject = async (projectId: string) => {
